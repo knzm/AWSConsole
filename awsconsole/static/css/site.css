@@ -1,0 +1,15 @@
+.navbar-inverse .navbar-inner {
+  background: url("../images/top_bg.jpg") repeat-x scroll center top transparent;
+}
+
+.dropdown-menu li {
+  border-left: 3px solid transparent;
+}
+
+.dropdown-menu li.current {
+  border-left: 3px solid #FAA732;
+}
+
+header {
+  padding-top: 60px;
+}

@@ -1,0 +1,190 @@
+{% extends 'base.jinja2' %}
+{%- block title %}Dashboard | AWS Console{% endblock -%}
+
+{%- block header -%}
+  <div id="header">
+    <h1>Dashboard</h1>
+  </div>
+{%- endblock -%}
+
+{% block page_js %}
+<script type="text/javascript" src="/static/js/spin.js"></script>
+<script type="text/javascript" src="/static/js/dashboard.js"></script>
+<script type="text/javascript">
+  $(function() {
+    $.fn.spin = function(opts) {
+      this.each(function() {
+        var $this = $(this);
+        var data = $this.data();
+        if (data.spinner) {
+          data.spinner.stop();
+          delete data.spinner;
+        }
+        if (opts !== false) {
+          data.spinner = new Spinner($.extend({color: $this.css('color')}, opts)).spin(this);
+        }
+      });
+      return this;
+    };
+
+    function execute(url, data, src) {
+      src.addClass('disabled');
+      src.spin();
+      $.ajax({
+        url: url,
+        type: "POST",
+        data: data,
+        success: function(data, dataType) {
+          setTimeout(function() { window.location.reload() }, 3000);
+        },
+        error: function(req, status, exc) {
+          alert('Action failed!');
+          src.removeClass('disabled');
+          src.spin(false);
+        }
+      });
+    };
+
+    $('button[name=start]').click(function(ev) {
+      if (!window.confirm('Are you sure to start this instance?')) return;
+      var $this = $(this);
+      var id = $this.data('id');
+      execute("{{ request.route_url('api.start') }}", {id: id}, $this);
+    });
+
+    $('button[name=stop]').click(function(ev) {
+      if (!window.confirm('Are you sure to stop this instance?')) return;
+      var $this = $(this);
+      var id = $this.data('id');
+      execute("{{ request.route_url('api.stop') }}", {id: id}, $this);
+    });
+
+    $('button[name=edit]').click(function(ev) {
+      var $this = $(this);
+      var id = $this.data('id');
+      var div = $('<div/>');
+      div.dialog({
+        autoOpen: true,
+        width: '600px',
+        modal: true,
+        buttons: {
+          "save": function(ev) {
+            $.ajax({
+              url: "{{ request.route_url('dashboard.save') }}",
+              type: "POST",
+              data: div.find('form').serialize(),
+              success: function(data, dataType) {
+                div.dialog("destroy");
+                var flash = $('<div/>').addClass('alert alert-success');
+                $('<button/>').addClass('close').attr('data-dismiss', 'alert').text('x').appendTo(flash);
+
+                $('<strong>Saved!</strong>').appendTo(flash);
+                $('#content').prepend(flash);
+                $('body,html').animate({scrollTop: 0}, 800);
+              }
+            });
+          },
+          "close": function(ev) {
+            $(this).dialog("destroy");
+          }
+        },
+        open: function() {
+          div.load("{{ request.route_url('dashboard.edit') }}?instance_id=" + id);
+        }
+      });
+    });
+
+  });
+</script>
+{% endblock %}
+
+{%- macro region_item(region) -%}
+  {% set area = request.context.area_from_region(region) -%}
+  {% set city = request.context.city_from_region(region) -%}
+  <li{{ (' class="current"'|safe) if current_region == region }}>
+    <a href="?region={{ region }}" tabindex="-1">{{ area }} ({{ city }})</a>
+  </li>
+{%- endmacro -%}
+
+{%- block content -%}
+<div id="content">
+
+  <div class="container">
+    <ul class="nav pull-right">
+      <li class="dropdown">
+        <a href="#" data-toggle="dropdown" class="dropdown-toggle" role="button">{{ request.context.city_from_region(current_region) }}<b class="caret"></b></a>
+        <ul class="dropdown-menu pull-right" role="menu" aria-labelledby="drop3">
+          {{ region_item('us-east-1') }}
+          {{ region_item('us-west-1') }}
+          {{ region_item('us-west-2') }}
+          <li class="divider"></li>
+          {{ region_item('eu-west-1') }}
+          <li class="divider"></li>
+          {{ region_item('ap-southeast-1') }}
+          {{ region_item('ap-northeast-1') }}
+          <li class="divider"></li>
+          {{ region_item('sa-east-1') }}
+        </ul>
+      </li>
+    </ul>
+    <span class="pull-right">Region:&nbsp;</span>
+  </div>
+
+  <div class="container">
+
+    <table class="table table-bordered table-striped table-hover table-condensed">
+      <thead>
+        <tr>
+          <!--<th>&nbsp;</th>-->
+          <th><a href="#">Instance ID</a></th>
+          <th><a href="#">Name</a></th>
+          <th><a href="#">Arch/Platform</a></th>
+          <th><a href="#">Placement</a></th>
+          <th><a href="#">Type</a></th>
+          <th><a href="#">Volumes</a></th>
+          <th><a href="#">State</a></th>
+          <th><a href="#">Actions</a></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for instance in instances %}
+        <tr>
+          <!--<td><input type="checkbox" /></td>-->
+          <td>{{ instance.instance_id }}</td>
+          <td>{{ instance.name }}</td>
+          <td>{{ instance.arch|default('-', true) }}/{{ instance.platform|default('other', true) }}</td>
+          <td>{{ instance.placement }}</td>
+          <td>{{ instance.instance_type }}</td>
+          <td>
+            <ul>
+            {% for volume in instance.volumes -%}
+              <li>{{ volume.volume_id }}: {{ volume.size }}GB</li>
+            {%- endfor %}
+            </ul>
+          </td>
+          <td>
+            {% if instance.state == 'running' -%}
+              {% set badge_class = 'badge-success' -%}
+            {% elif instance.state == 'pending' or instance.state == 'stopping' -%}
+              {% set badge_class = 'badge-warning' -%}
+            {%- else -%}
+              {% set badge_class = '' -%}
+            {%- endif %}
+            <span class="badge {{ badge_class }}">{{ instance.state }}</span>
+          </td>
+          <td>
+            {% if instance.state == 'running' -%}
+              <button name="stop" class="btn btn-danger" data-id="{{ instance.instance_id }}"><i class="icon-stop"></i> Stop</button>
+            {% elif instance.state == 'stopped' -%}
+              <button name="start" class="btn btn-info" data-id="{{ instance.instance_id }}"><i class="icon-play"></i> Start</button>
+            {%- endif %}
+            <button name="edit" class="btn" data-id="{{ instance.instance_id }}"><i class="icon-edit"></i> Edit</button>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+</div>
+{%- endblock -%}

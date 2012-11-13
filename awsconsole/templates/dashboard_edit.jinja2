@@ -1,0 +1,24 @@
+{{ renderer.begin(request.route_url('dashboard.save'), class_='form-horizontal') }}
+<div class="control-group">
+  <label class="control-label">Instance ID</label>
+  <div class="controls">
+    {{ instance.instance_id }}
+    {{ renderer.hidden("instance_id", value=instance.instance_id) }}
+  </div>
+</div>
+<div class="control-group">
+  <label class="control-label">Name</label>
+  <div class="controls">
+    {{ instance.name }}
+  </div>
+</div>
+<div class="control-group">
+  <label for="hostnames" class="control-label">Hostnames</label>
+  <div class="controls">
+    {{ renderer.textarea("hostnames", cols=16, rows=4) }}
+  </div>
+  <span class="help-inline">
+    {{ renderer.errorlist("hostnames") }}
+  <span>
+</div>
+{{ renderer.end() }}

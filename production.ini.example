@@ -1,0 +1,80 @@
+###
+# app configuration
+# http://docs.pylonsproject.org/projects/pyramid/en/latest/narr/environment.html
+###
+
+[app:main]
+use = egg:AWSConsole
+
+pyramid.reload_templates = false
+pyramid.debug_authorization = false
+pyramid.debug_notfound = false
+pyramid.debug_routematch = false
+pyramid.default_locale_name = en
+pyramid.includes =
+    pyramid_tm
+    pyramid_jinja2
+    pyramid_fanstatic
+
+sqlalchemy.url = sqlite:///%(here)s/awsconsole.sqlite
+
+jinja2.directories = awsconsole:templates
+jinja2.autoescape = true
+
+fanstatic.publisher_signature = fanstatic
+fanstatic.bottom = true
+fanstatic.debug = true
+
+# aws_access_key_id = 
+# aws_secret_access_key = 
+# hosted_zone_id = 
+# domain_name = 
+
+###
+# wsgi server configuration
+###
+
+[server:main]
+use = egg:waitress#main
+host = 0.0.0.0
+port = 6543
+
+###
+# logging configuration
+# http://docs.pylonsproject.org/projects/pyramid/en/latest/narr/logging.html
+###
+
+[loggers]
+keys = root, awsconsole, sqlalchemy
+
+[handlers]
+keys = console
+
+[formatters]
+keys = generic
+
+[logger_root]
+level = WARN
+handlers = console
+
+[logger_awsconsole]
+level = WARN
+handlers =
+qualname = awsconsole
+
+[logger_sqlalchemy]
+level = WARN
+handlers =
+qualname = sqlalchemy.engine
+# "level = INFO" logs SQL queries.
+# "level = DEBUG" logs SQL queries and results.
+# "level = WARN" logs neither.  (Recommended for production systems.)
+
+[handler_console]
+class = StreamHandler
+args = (sys.stderr,)
+level = NOTSET
+formatter = generic
+
+[formatter_generic]
+format = %(asctime)s %(levelname)-5.5s [%(name)s][%(threadName)s] %(message)s

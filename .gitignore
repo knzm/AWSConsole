@@ -1,0 +1,4 @@
+AWSConsole.egg-info
+development.ini
+production.ini
+*.sqlite
