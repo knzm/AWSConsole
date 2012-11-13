@@ -9,91 +9,17 @@
 
 {% block page_js %}
 <script type="text/javascript" src="/static/js/spin.js"></script>
+<script type="text/javascript" src="/static/js/jquery.spin.js"></script>
 <script type="text/javascript" src="/static/js/dashboard.js"></script>
 <script type="text/javascript">
   $(function() {
-    $.fn.spin = function(opts) {
-      this.each(function() {
-        var $this = $(this);
-        var data = $this.data();
-        if (data.spinner) {
-          data.spinner.stop();
-          delete data.spinner;
-        }
-        if (opts !== false) {
-          data.spinner = new Spinner($.extend({color: $this.css('color')}, opts)).spin(this);
-        }
-      });
-      return this;
-    };
-
-    function execute(url, data, src) {
-      src.addClass('disabled');
-      src.spin();
-      $.ajax({
-        url: url,
-        type: "POST",
-        data: data,
-        success: function(data, dataType) {
-          setTimeout(function() { window.location.reload() }, 3000);
-        },
-        error: function(req, status, exc) {
-          alert('Action failed!');
-          src.removeClass('disabled');
-          src.spin(false);
-        }
-      });
-    };
-
-    $('button[name=start]').click(function(ev) {
-      if (!window.confirm('Are you sure to start this instance?')) return;
-      var $this = $(this);
-      var id = $this.data('id');
-      execute("{{ request.route_url('api.start') }}", {id: id}, $this);
+    var app = new Dashboard({
+      "sync": "{{ request.route_url('api.sync') }}",
+      "start": "{{ request.route_url('api.start') }}",
+      "stop": "{{ request.route_url('api.stop') }}",
+      "save": "{{ request.route_url('dashboard.save') }}",
+      "edit": "{{ request.route_url('dashboard.edit') }}"
     });
-
-    $('button[name=stop]').click(function(ev) {
-      if (!window.confirm('Are you sure to stop this instance?')) return;
-      var $this = $(this);
-      var id = $this.data('id');
-      execute("{{ request.route_url('api.stop') }}", {id: id}, $this);
-    });
-
-    $('button[name=edit]').click(function(ev) {
-      var $this = $(this);
-      var id = $this.data('id');
-      var div = $('<div/>');
-      div.dialog({
-        autoOpen: true,
-        width: '600px',
-        modal: true,
-        buttons: {
-          "save": function(ev) {
-            $.ajax({
-              url: "{{ request.route_url('dashboard.save') }}",
-              type: "POST",
-              data: div.find('form').serialize(),
-              success: function(data, dataType) {
-                div.dialog("destroy");
-                var flash = $('<div/>').addClass('alert alert-success');
-                $('<button/>').addClass('close').attr('data-dismiss', 'alert').text('x').appendTo(flash);
-
-                $('<strong>Saved!</strong>').appendTo(flash);
-                $('#content').prepend(flash);
-                $('body,html').animate({scrollTop: 0}, 800);
-              }
-            });
-          },
-          "close": function(ev) {
-            $(this).dialog("destroy");
-          }
-        },
-        open: function() {
-          div.load("{{ request.route_url('dashboard.edit') }}?instance_id=" + id);
-        }
-      });
-    });
-
   });
 </script>
 {% endblock %}
@@ -101,7 +27,7 @@
 {%- macro region_item(region) -%}
   {% set area = request.context.area_from_region(region) -%}
   {% set city = request.context.city_from_region(region) -%}
-  <li{{ (' class="current"'|safe) if current_region == region }}>
+  <li{{ (' class="current"'|safe) if current_region == region }} data-region="{{ region }}">
     <a href="?region={{ region }}" tabindex="-1">{{ area }} ({{ city }})</a>
   </li>
 {%- endmacro -%}
@@ -110,24 +36,32 @@
 <div id="content">
 
   <div class="container">
-    <ul class="nav pull-right">
-      <li class="dropdown">
-        <a href="#" data-toggle="dropdown" class="dropdown-toggle" role="button">{{ request.context.city_from_region(current_region) }}<b class="caret"></b></a>
-        <ul class="dropdown-menu pull-right" role="menu" aria-labelledby="drop3">
-          {{ region_item('us-east-1') }}
-          {{ region_item('us-west-1') }}
-          {{ region_item('us-west-2') }}
-          <li class="divider"></li>
-          {{ region_item('eu-west-1') }}
-          <li class="divider"></li>
-          {{ region_item('ap-southeast-1') }}
-          {{ region_item('ap-northeast-1') }}
-          <li class="divider"></li>
-          {{ region_item('sa-east-1') }}
+    <div class="navbar">
+        <ul class="nav pull-right">
+          <li>
+            <button name="sync" class="btn btn-small btn-warning"><i class="icon-refresh"></i> Sync</button>
+          </li>
+          <li class="divider-vertical"></li>
+          <li>
+            <span class="navbar-text">Region:</span>
+          </li>
+          <li id="region-dropdown" class="dropdown">
+            <a href="#" data-toggle="dropdown" class="dropdown-toggle" role="button">{{ request.context.city_from_region(current_region) }}<b class="caret"></b></a>
+            <ul class="dropdown-menu pull-right" role="menu" aria-labelledby="drop3">
+              {{ region_item('us-east-1') }}
+              {{ region_item('us-west-1') }}
+              {{ region_item('us-west-2') }}
+              <li class="divider"></li>
+              {{ region_item('eu-west-1') }}
+              <li class="divider"></li>
+              {{ region_item('ap-southeast-1') }}
+              {{ region_item('ap-northeast-1') }}
+              <li class="divider"></li>
+              {{ region_item('sa-east-1') }}
+            </ul>
+          </li>
         </ul>
-      </li>
-    </ul>
-    <span class="pull-right">Region:&nbsp;</span>
+    </div>
   </div>
 
   <div class="container">
@@ -138,12 +72,12 @@
           <!--<th>&nbsp;</th>-->
           <th><a href="#">Instance ID</a></th>
           <th><a href="#">Name</a></th>
-          <th><a href="#">Arch/Platform</a></th>
+          <th>Arch/Platform</th>
           <th><a href="#">Placement</a></th>
           <th><a href="#">Type</a></th>
-          <th><a href="#">Volumes</a></th>
+          <th>Volumes</th>
           <th><a href="#">State</a></th>
-          <th><a href="#">Actions</a></th>
+          <th>Actions</th>
         </tr>
       </thead>
       <tbody>
@@ -154,7 +88,7 @@
           <td>{{ instance.name }}</td>
           <td>{{ instance.arch|default('-', true) }}/{{ instance.platform|default('other', true) }}</td>
           <td>{{ instance.placement }}</td>
-          <td>{{ instance.instance_type }}</td>
+          <td>{{ instance.instance_type }} <a href="#"><span class="label label-inverse">&uarr;&darr;</span></a></td>
           <td>
             <ul>
             {% for volume in instance.volumes -%}

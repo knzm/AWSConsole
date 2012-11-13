@@ -23,3 +23,12 @@ def stop_view(request):
     except api.Error:
         raise exc.HTTPBadRequest()
     return {"result": "ok"}
+
+
+@view_config(route_name='api.sync', renderer='json')
+def sync_region_view(request):
+    try:
+        result = api.sync_region(request, request.params.get('region'))
+    except api.Error:
+        raise exc.HTTPBadRequest()
+    return {"result": "ok"}

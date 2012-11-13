@@ -9,7 +9,14 @@ from awsconsole.services.aws import (
     Route53Service,
     )
 
-__all__ = ['APIError', 'update_model', 'start_instance']
+__all__ = [
+    'APIError',
+    'sync_all',
+    'sync_region',
+    'start_instance',
+    'stop_instance',
+    'update_address',
+    ]
 
 
 class APIError(Exception):
@@ -20,13 +27,24 @@ class APIError(Exception):
 Error = APIError
 
 
-def update_all_model(request):
+def sync_all(request):
     ec2_service = request.context.get_ec2_service()
-    for region in ec2_service.get_all_regions():
-        update_model(request, region)
+    try:
+        regions = ec2_service.get_all_regions()
+    except AWSServiceError, ex:
+        raise APIError(ex)
+    for region in regions:
+        sync_region(request, region)
 
 
-def update_model(request, region):
+def sync_region(request, region):
+    try:
+        return _sync_region(request, region)
+    except AWSServiceError, ex:
+        raise APIError(ex)
+
+
+def _sync_region(request, region):
     ec2_service = request.context.get_ec2_service()
 
     instances = {}
@@ -94,5 +112,29 @@ def stop_instance(request, instance_id):
     ec2_service = request.context.get_ec2_service()
     try:
         return ec2_service.stop_instance(instance.region, instance.instance_id)
+    except AWSServiceError, ex:
+        raise APIError(ex)
+
+
+def update_address(request, instance_id, address):
+    query = models.DBSession.query(models.InstanceModel)
+    instance = query.filter_by(instance_id=instance_id).first()
+    if instance is None:
+        raise APIError
+    hosted_zone_id = request.registry.settings["hosted_zone_id"]
+    domain_name = request.registry.settings["domain_name"]
+    route53_service = request.context.get_route53_service()
+    hostnames = []
+    for name in instance.hostnames.splitlines():
+        if "." in name:
+            hostname = name
+        else:
+            hostname = name + "." + domain_name
+        if hostname.endswith("."):
+            hostname += "."
+        hostnames.append(hostname)
+    try:
+        route53_service.update_record(
+            hosted_zone_id, hostnames, "A", [address], ttl=60)
     except AWSServiceError, ex:
         raise APIError(ex)

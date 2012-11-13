@@ -115,29 +115,35 @@ class Route53Service(AWSService):
             start_marker = response['NextMarker']
         return zones
 
-    def update_record(self, hosted_zone_id, name, type, resource_records,
+    def update_record(self, hosted_zone_id, names, type, resource_records,
                       ttl=600, identifier=None, weight=None, comment=""):
         """Delete and then add a record to a zone"""
         conn = self._get_checked_connection()
         changes = ResourceRecordSets(conn, hosted_zone_id, comment)
 
-        # Assume there are not more than 10 WRRs for a given (name, type)
-        rs = conn.get_all_rrsets(hosted_zone_id, type, name, maxitems=10)
-        for record in rs:
-            if record.name != name or record.type != type:
-                continue
-            if record.identifier != identifier or record.weight != weight:
-                continue
-            delete_record = changes.add_change(
-                "DELETE", name, type, record.ttl,
-                identifier=identifier, weight=weight)
-            for value in record.resource_records:
-                delete_record.add_value(value)
+        if isinstance(names, basestring):
+            names = [names]
+        if isinstance(resource_records, basestring):
+            resource_records = [resource_records]
 
-        create_record = changes.add_change(
-            "CREATE", name, type, ttl,
-            identifier=identifier, weight=weight)
-        for value in resource_records:
-            create_record.add_value(value)
+        for name in names:
+            # Assume there are not more than 10 WRRs for a given (name, type)
+            rs = conn.get_all_rrsets(hosted_zone_id, type, name, maxitems=10)
+            for record in rs:
+                if record.name != name or record.type != type:
+                    continue
+                if record.identifier != identifier or record.weight != weight:
+                    continue
+                delete_record = changes.add_change(
+                    "DELETE", name, type, record.ttl,
+                    identifier=identifier, weight=weight)
+                for value in record.resource_records:
+                    delete_record.add_value(value)
+
+            create_record = changes.add_change(
+                "CREATE", name, type, ttl,
+                identifier=identifier, weight=weight)
+            for value in resource_records:
+                create_record.add_value(value)
 
         return changes.commit()
