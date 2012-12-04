@@ -92,7 +92,7 @@
           <td>
             <ul>
             {% for volume in instance.volumes -%}
-              <li>{{ volume.volume_id }}: {{ volume.size }}GB</li>
+              <li>{{ volume.volume_id }}: {{ volume.size }}GB ({{ volume.name|default('NO NAME', true) }})</li>
             {%- endfor %}
             </ul>
           </td>
