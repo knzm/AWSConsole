@@ -6,7 +6,7 @@
   <title>{% block title %}{% endblock %}</title>
 
   {% block site_css -%}
-  <link rel="stylesheet" type="text/css" href="/static/css/site.css" />
+  <link rel="stylesheet" type="text/css" href="{{ request.static_url('awsconsole:static/css/site.css') }}" />
   {%- endblock -%}
 
   {% block site_js -%}
@@ -29,7 +29,7 @@
       {% block page_top -%}
       <div id="page-top">
         <div id="logo">
-          <img src="/static/images/pyramid-small.png" alt="Pyramid" />
+          <img src="{{ request.static_url('awsconsole:static/images/pyramid-small.png') }}" alt="Pyramid" />
         </div>
       </div>
       {%- endblock %}
