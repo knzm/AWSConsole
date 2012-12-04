@@ -59,8 +59,8 @@ def _sync_region(request, region):
         cached_instances = {}
         unused_instances = {}
         instance_query = models.DBSession.query(models.InstanceModel) \
-            .filter_by(region=region, is_obsolete=False)
-        for instance in instance_query:
+            .filter_by(region=region)
+        for instance in instance_query.filter_by(is_obsolete=False):
             unused_instances[instance.instance_id] = instance
         for instance in instances.values():
             cached_instance = models.InstanceModel.update_cache(
@@ -73,8 +73,8 @@ def _sync_region(request, region):
         cached_volumes = {}
         unused_volumes = {}
         volume_query = models.DBSession.query(models.VolumeModel) \
-            .filter_by(region=region, is_obsolete=False)
-        for volume in volume_query:
+            .filter_by(region=region)
+        for volume in volume_query.filter_by(is_obsolete=False):
             unused_volumes[volume.volume_id] = volume
         for volume in volumes.values():
             cached_volume = models.VolumeModel.update_cache(
@@ -84,7 +84,7 @@ def _sync_region(request, region):
         for volume in unused_volumes.values():
             volume.is_obsolete = True
 
-        for volume in cached_volumes.values():
+        for volume in volume_query:
             volume.instance = None
         for instance in instances.values():
             for block_device_type in instance.block_device_mapping.values():

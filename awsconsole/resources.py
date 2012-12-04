@@ -55,7 +55,9 @@ class RootContext(object):
         for instance in models.DBSession.query(models.InstanceModel):
             d = instances_per_region.setdefault(instance.region, {})
             d[instance.instance_id] = instance
-            instances[instance.instance_id] = instance.to_dict({'volumes': {}})
+            instances[instance.instance_id] = instance.to_dict()
+            instances[instance.instance_id]["volumes"] = \
+                [volume.to_dict() for volume in instance.get_current_volumes()]
         ec2_service = self.get_ec2_service()
         for region in instances_per_region:
             instance_ids = [instance_id for instance_id, instance \
@@ -73,7 +75,9 @@ class RootContext(object):
         query = models.DBSession.query(models.InstanceModel) \
             .filter_by(region=region)
         for instance in query:
-            instances[instance.instance_id] = instance.to_dict({'volumes': {}})
+            instances[instance.instance_id] = instance.to_dict()
+            instances[instance.instance_id]["volumes"] = \
+                [volume.to_dict() for volume in instance.get_current_volumes()]
 
         ec2_service = self.get_ec2_service()
         instance_ids = [instance_id for instance_id, instance \

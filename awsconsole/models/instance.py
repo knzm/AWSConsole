@@ -34,6 +34,9 @@ class InstanceModel(BaseModel):
     hostnames = Column(Text, default="")
     volumes = relationship("VolumeModel", backref="instance")
 
+    def get_current_volumes(self):
+        return [volume for volume in self.volumes if not volume.is_obsolete]
+
     @classmethod
     def update_cache(cls, cached_instance, instance):
         if cached_instance is None:
