@@ -7,7 +7,11 @@
   </div>
 {%- endblock -%}
 
-{% block page_js %}
+{%- block page_css -%}
+<link rel="stylesheet" type="text/css" href="{{ request.static_url('awsconsole:static/css/dashboard.css') }}" />
+{%- endblock -%}
+
+{%- block page_js -%}
 <script type="text/javascript" src="{{ request.static_url('awsconsole:static/js/spin.js') }}"></script>
 <script type="text/javascript" src="{{ request.static_url('awsconsole:static/js/jquery.spin.js') }}"></script>
 <script type="text/javascript" src="{{ request.static_url('awsconsole:static/js/dashboard.js') }}"></script>
@@ -22,7 +26,7 @@
     });
   });
 </script>
-{% endblock %}
+{%- endblock -%}
 
 {%- macro region_item(region) -%}
   {% set area = request.context.area_from_region(region) -%}
@@ -66,18 +70,19 @@
 
   <div class="container">
 
-    <table class="table table-bordered table-striped table-hover table-condensed">
+    <table id="dashboard-table" class="table table-bordered table-striped table-hover table-condensed">
       <thead>
         <tr>
           <!--<th>&nbsp;</th>-->
-          <th><a href="#">Instance ID</a></th>
-          <th><a href="#">Name</a></th>
-          <th>Arch/Platform</th>
-          <th><a href="#">Placement</a></th>
-          <th><a href="#">Type</a></th>
-          <th>Volumes</th>
-          <th><a href="#">State</a></th>
-          <th>Actions</th>
+          <th class="col-id"><a href="#">Instance ID</a></th>
+          <th class="col-name"><a href="#">Name</a></th>
+          <th class="col-arch">Arch/Platform</th>
+          <th class="col-placement"><a href="#">Placement</a></th>
+          <th class="col-type"><a href="#">Type</a></th>
+          <th class="col-volumes">Volumes</th>
+          <th class="col-ip-address">IP Address</th>
+          <th class="col-state"><a href="#">State</a></th>
+          <th class="col-action">Actions</th>
         </tr>
       </thead>
       <tbody>
@@ -88,7 +93,7 @@
           <td>{{ instance.name }}</td>
           <td>{{ instance.arch|default('-', true) }}/{{ instance.platform|default('other', true) }}</td>
           <td>{{ instance.placement }}</td>
-          <td>{{ instance.instance_type }} <a href="#"><span class="label label-inverse">&uarr;&darr;</span></a></td>
+          <td>{{ instance.instance_type }} {# <a href="#"><span class="label label-inverse">&uarr;&darr;</span></a> #}</td>
           <td>
             <ul>
             {% for volume in instance.volumes -%}
@@ -96,6 +101,7 @@
             {%- endfor %}
             </ul>
           </td>
+          <td>{{ instance.ip_address|default('', true) }}</td>
           <td>
             {% if instance.state == 'running' -%}
               {% set badge_class = 'badge-success' -%}

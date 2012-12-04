@@ -1,0 +1,6 @@
+#dashboard-table .col-state {
+  min-width: 70px;
+}
+#dashboard-table .col-action {
+  min-width: 80px;
+}

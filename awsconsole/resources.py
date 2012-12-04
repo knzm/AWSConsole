@@ -85,8 +85,10 @@ class RootContext(object):
                         if not instance["is_obsolete"]]
         for instance in ec2_service.get_instances(
             region, instance_ids=instance_ids):
-            if instance.id in instances:
-                instances[instance.id]["state"] = instance.state
+            d = instances.get(instance.id)
+            if d:
+                d["state"] = instance.state
+                d["ip_address"] = instance.ip_address
 
         return sorted(instances.values(), key=itemgetter('id'))
 
